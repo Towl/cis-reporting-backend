@@ -8,12 +8,14 @@ const (
 	Passed  Status = "passed"
 	Failed  Status = "failed"
 	Skipped Status = "skipped"
+	Warning Status = "warning"
 )
 
 //Aggregation struct
 type Aggregation struct {
-	Files   []*AuditFile `json:"audit_files"`
-	Summary Summary      `json:"summary"`
+	Files        []*AuditFile `json:"audit_files"`
+	SummaryTests Summary      `json:"summary_tests"`
+	SummaryHosts Summary      `json:"summary_hosts"`
 }
 
 //AuditFile struct
@@ -38,7 +40,9 @@ type Environment struct {
 
 //Test struct
 type Test struct {
-	Name     string  `json:"name"`
+	RawName  string  `json:"name"`
+	Name     string  `json:"display_name"`
+	Group    string  `json:"group"`
 	Duration float64 `json:"duration"`
 	RunIndex int     `json:"run_index"`
 	Setup    Process `json:"setup"`
@@ -53,6 +57,7 @@ type Process struct {
 	Duration float64 `json:"duration"`
 	Outcome  Status  `json:"outcome"`
 	Message  string  `json:"longrepr"`
+	Output   string  `json:"stdout"`
 }
 
 //Summary struct
@@ -66,8 +71,9 @@ type Summary struct {
 
 //Inventory struct
 type Inventory struct {
-	Items   []*InventoryItem `json:"items"`
-	Summary Summary          `json:"summary"`
+	Items        []*InventoryItem `json:"items"`
+	SummaryTests Summary          `json:"summary_tests"`
+	SummaryHosts Summary          `json:"summary_hosts"`
 }
 
 //InventoryItem struct
@@ -80,4 +86,6 @@ type InventoryItem struct {
 	Skipped      int    `json:"skipped"`
 	Failed       int    `json:"failed"`
 	Date         string `json:"date"`
+	Status       Status `json:"status"`
+	Tests        []Test `json:"tests"`
 }

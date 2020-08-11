@@ -14,7 +14,7 @@ func StartListening() {
 	http.HandleFunc("/health", GenerateHandler("^/health$", HealthHandler))
 	http.HandleFunc("/static/", GenerateHandler("^/(static/(js/|css/|media/)[a-zA-Z0-9._]*)$", FileHandler))
 	http.HandleFunc("/audits/", GenerateHandler("^/(static/[a-zA-Z0-9._-]*)$", FileHandler))
-	http.HandleFunc("/api/", GenerateHandler("^/api/(get/(all|inventory))$", APIHandler))
+	http.HandleFunc("/api/", GenerateHandler("^/api/(get/(all|inventory|host))$", APIHandler))
 	http.HandleFunc("/", GenerateHandler("^/(.*)$", FileHandler))
 	a := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	logger.Infof("Start listening \"%s\"...", a)

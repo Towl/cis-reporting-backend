@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 
 	log "github.com/towl/logger"
 )
@@ -12,6 +13,7 @@ type Config struct {
 	Port       string
 	WorkingDir string
 	AuditDir   string
+	Tolerance  int
 }
 
 var config = &Config{}
@@ -27,4 +29,5 @@ func (c *Config) loadEnv() {
 	c.Port = os.Getenv("PORT")
 	c.WorkingDir = os.Getenv("WORKING_DIR")
 	c.AuditDir = os.Getenv("AUDIT_DIR")
+	c.Tolerance, _ = strconv.Atoi(os.Getenv("TOLERANCE"))
 }

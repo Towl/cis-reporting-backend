@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -38,11 +40,20 @@ func ParseAllAudits(a *Aggregation) filepath.WalkFunc {
 			f := parseAuditFile(p)
 			f.Filename = strings.Replace(i.Name(), ".json", "", 1)
 			a.Files = append(a.Files, f)
-			a.Summary.Count++
-			a.Summary.Failed += f.Report.Summary.Failed
-			a.Summary.Passed += f.Report.Summary.Passed
-			a.Summary.Skipped += f.Report.Summary.Skipped
-			a.Summary.Duration += f.Report.Summary.Duration
+			a.SummaryTests.Count += f.Report.Summary.Count
+			a.SummaryTests.Failed += f.Report.Summary.Failed
+			a.SummaryTests.Passed += f.Report.Summary.Passed
+			a.SummaryTests.Skipped += f.Report.Summary.Skipped
+			a.SummaryTests.Duration += f.Report.Summary.Duration
+			a.SummaryHosts.Count++
+			switch {
+			case f.Report.Summary.Failed == 0:
+				a.SummaryHosts.Passed++
+			case f.Report.Summary.Failed <= config.Tolerance:
+				a.SummaryHosts.Skipped++
+			default:
+				a.SummaryHosts.Failed++
+			}
 		}
 		return nil
 	}
@@ -71,16 +82,60 @@ func writeJsonResponse(w http.ResponseWriter, s string) {
 //GetInventory entrypoint
 func (a *API) GetInventory(w http.ResponseWriter, r *http.Request) {
 	g := getAllAggregation()
-	i := &Inventory{Summary: g.Summary}
+	i := &Inventory{SummaryTests: g.SummaryTests, SummaryHosts: g.SummaryHosts}
 	for _, f := range g.Files {
-		j := &InventoryItem{}
-		j.Hostname = f.Filename
-		j.Passed = f.Report.Summary.Passed
-		j.Failed = f.Report.Summary.Failed
-		j.Skipped = f.Report.Summary.Skipped
-		j.Date = f.Report.CreatedAt
+		j := convertFileToItem(f)
+		switch {
+		case f.Report.Summary.Failed == 0:
+			j.Status = Passed
+		case f.Report.Summary.Failed <= config.Tolerance:
+			j.Status = Warning
+		default:
+			j.Status = Failed
+		}
 		i.Items = append(i.Items, j)
 	}
+	b, e := json.Marshal(i)
+	logger.Panice(e, "Unable to marshal response : %s", e)
+	writeJsonResponse(w, string(b))
+}
+
+func convertFileToItem(f *AuditFile) *InventoryItem {
+	p := regexp.MustCompile(`test_(.+).py::test_(.+)\[.*\]$`)
+	j := &InventoryItem{}
+	j.Hostname = f.Filename
+	j.Passed = f.Report.Summary.Passed
+	j.Failed = f.Report.Summary.Failed
+	j.Skipped = f.Report.Summary.Skipped
+	j.Date = f.Report.CreatedAt
+	for _, t := range f.Report.Tests {
+		m := p.FindAllStringSubmatch(t.RawName, -1)
+		t.Group = m[0][1]
+		t.Name = m[0][2]
+		j.Tests = append(j.Tests, t)
+		if t.Group == "info" {
+			if t.Name == "type" {
+				j.OS = strings.Replace(t.Call.Output, "\n", " ", -1)
+			} else if t.Name == "distrib" {
+				std := strings.Split(strings.Replace(t.Call.Output, "None", "", -1), "\n")
+				j.Distribution = std[0]
+				j.Version = std[len(std)-2]
+			}
+		}
+	}
+	return j
+}
+
+func (a *API) GetHost(w http.ResponseWriter, r *http.Request) {
+	p, ok := r.URL.Query()["h"]
+	if !ok || len(p[0]) < 1 {
+		logger.Error("Url Param 'h' is missing")
+		return
+	}
+	h := p[0]
+	f := filepath.Join(config.AuditDir, fmt.Sprintf("%s%s", h, ".json"))
+	g := parseAuditFile(f)
+	i := convertFileToItem(g)
 	b, e := json.Marshal(i)
 	logger.Panice(e, "Unable to marshal response : %s", e)
 	writeJsonResponse(w, string(b))
