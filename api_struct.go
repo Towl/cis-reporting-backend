@@ -40,15 +40,19 @@ type Environment struct {
 
 //Test struct
 type Test struct {
-	RawName  string  `json:"name"`
-	Name     string  `json:"display_name"`
-	Group    string  `json:"group"`
-	Duration float64 `json:"duration"`
-	RunIndex int     `json:"run_index"`
-	Setup    Process `json:"setup"`
-	Call     Process `json:"call"`
-	Teardown Process `json:"teardown"`
-	Outcome  Status  `json:"outcome"`
+	RawName    string  `json:"name"`
+	Name       string  `json:"display_name"`
+	Group      string  `json:"group"`
+	Duration   float64 `json:"duration"`
+	RunIndex   int     `json:"run_index"`
+	Setup      Process `json:"setup"`
+	Call       Process `json:"call"`
+	Teardown   Process `json:"teardown"`
+	Outcome    Status  `json:"outcome"`
+	SourceFile string  `json:"source_file"`
+	SourceLine int     `json:"source_line"`
+	Doc        string  `json:"doc"`
+	Args       string  `json:"args"`
 }
 
 //Process struct

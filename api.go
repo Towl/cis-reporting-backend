@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -112,6 +113,13 @@ func convertFileToItem(f *AuditFile) *InventoryItem {
 		m := p.FindAllStringSubmatch(t.RawName, -1)
 		t.Group = m[0][1]
 		t.Name = m[0][2]
+		n := strings.Split(t.Setup.Output, "\n")
+		t.Args = t.Call.Output
+		if len(n) >= 3 {
+			t.SourceFile = filepath.Base(n[0])
+			t.SourceLine, _ = strconv.Atoi(n[1])
+			t.Doc = strings.Join(n[2:], "</br>")
+		}
 		j.Tests = append(j.Tests, t)
 		if t.Group == "info" {
 			if t.Name == "type" {
